@@ -1,0 +1,6 @@
+.scripture-card { position: relative; max-width: 650px; padding: 19px 21px 17px; margin: 19px 0 0; background: color-mix(in srgb,var(--gold-soft) 12%,var(--surface)); border: 1px solid color-mix(in srgb,var(--gold) 38%,transparent); border-radius: 3px 13px 13px 13px; }
+.scripture-card::before { position: absolute; inset-block: 0; inset-inline-start: -1px; width: 3px; content: ''; background: var(--gold); border-radius: 3px 0 0 3px; }
+.scripture-card__mark { display: grid; width: 25px; height: 25px; margin-bottom: 11px; color: var(--gold); background: color-mix(in srgb,var(--gold) 14%,transparent); border-radius: 50%; place-items: center; }
+.scripture-card blockquote { margin: 0; color: var(--ink); font-family: var(--font-display); font-size: 22px; font-style: italic; font-weight: 600; line-height: 1.5; }
+.scripture-card figcaption { margin-top: 12px; color: var(--gold); font-size: 11px; font-weight: 700; }
+@media (max-width: 560px) { .scripture-card { padding: 16px 17px 15px; } .scripture-card blockquote { font-size: 19px; } }

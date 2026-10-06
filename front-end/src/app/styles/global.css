@@ -1,0 +1,7 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Noto+Naskh+Arabic:wght@500;600;700&display=swap');
+:root { font-family: var(--font-sans); color: var(--ink); background: var(--paper); font-synthesis: none; text-rendering: optimizeLegibility; }
+body { min-height: 100vh; direction: rtl; background: radial-gradient(circle at 18% 5%, rgba(215,189,134,.19), transparent 27rem), linear-gradient(135deg,var(--paper),var(--paper-deep)); }
+button, a, input, textarea { -webkit-tap-highlight-color: transparent; }
+button, a { color: inherit; }
+button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid color-mix(in srgb,var(--focus) 55%,transparent); outline-offset: 3px; }
+::selection { color: var(--paper); background: var(--gold); }

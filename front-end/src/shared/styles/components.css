@@ -1,0 +1,16 @@
+.brand-logo { display: inline-flex; align-items: center; gap: 11px; min-width: 0; }
+.brand-logo__mark { position: relative; display: grid; width: 37px; height: 37px; flex: 0 0 auto; place-items: center; background: var(--navy); border-radius: 11px 11px 11px 3px; box-shadow: 0 7px 15px rgba(23,52,59,.16); }
+.brand-logo__mark::after { position: absolute; bottom: -4px; left: -4px; width: 11px; height: 11px; content: ''; background: var(--gold); border: 3px solid var(--paper); border-radius: 50%; }
+.brand-logo__mark i { position: absolute; display: block; background: var(--gold-soft); border-radius: 3px; }
+.brand-logo__vertical { width: 4px; height: 22px; }
+.brand-logo__horizontal { width: 17px; height: 4px; margin-top: -4px; }
+.brand-logo__copy { display: grid; gap: 0; text-align: right; }
+.brand-logo__copy strong { color: var(--navy); font-family: var(--font-display); font-size: 25px; line-height: .9; }
+.brand-logo__copy small { color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: .05em; white-space: nowrap; }
+.brand-logo--compact .brand-logo__mark { width: 32px; height: 32px; box-shadow: none; }
+.brand-logo--compact .brand-logo__mark::after { display: none; }
+.brand-logo--compact .brand-logo__vertical { height: 19px; }
+.icon-button { display: inline-grid; width: 38px; height: 38px; padding: 0; color: var(--ink-soft); background: transparent; border-radius: 50%; cursor: pointer; place-items: center; transition: color var(--transition),background var(--transition),transform var(--transition); }
+.icon-button:hover { color: var(--ink); background: color-mix(in srgb,var(--ink) 7%,transparent); transform: translateY(-1px); }
+.avatar { display: grid; width: 38px; height: 38px; overflow: hidden; place-items: center; background: var(--navy); border-radius: 50%; }
+.avatar .brand-logo__mark { background: transparent; box-shadow: none; }
