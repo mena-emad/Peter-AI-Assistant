@@ -4,6 +4,8 @@ import summaryPrompt from "../../config/summaryPrompt.js"
 const ai = new GoogleGenAI({
     apiKey: process.env.GOOGLE_API_KEY,
 })
+const newConversationTitle = 'محادثة جديدة'
+const legacyConversationTitles = new Set(['New Conversation', newConversationTitle])
 
 class ChatRepository{
     constructor(model,tools,geminiTools,conversationModel,chatHistoryModel){
@@ -12,6 +14,46 @@ class ChatRepository{
         this.geminiTools = geminiTools
         this.conversation = conversationModel
         this.chatHistory = chatHistoryModel
+    }
+
+    async createConversation(userId){
+        if (!userId) throw new Error("Authenticated user is required")
+        const conversation = await this.conversation.create({
+            userId:String(userId),
+            title:newConversationTitle,
+        })
+        return {id:String(conversation._id),title:conversation.title,updatedAt:conversation.updatedAt}
+    }
+
+    async getConversations(userId){
+        if (!userId) return []
+        const conversations = await this.conversation
+            .find({userId:String(userId)})
+            .sort({updatedAt:-1})
+            .select('_id title updatedAt')
+            .lean()
+
+        for (const conversation of conversations) {
+            if (!legacyConversationTitles.has(conversation.title)) continue
+            const firstMessage = await this.chatHistory
+                .findOne({userId:String(userId),conversationId:conversation._id,role:'user'})
+                .sort({createdAt:1,_id:1})
+                .select('content')
+                .lean()
+            const title = firstMessage?.content?.trim()
+            if (!title) continue
+            await this.conversation.updateOne(
+                {_id:conversation._id,userId:String(userId)},
+                {$set:{title}},
+            )
+            conversation.title = title
+        }
+
+        return conversations.map((conversation) => ({
+            id:String(conversation._id),
+            title:conversation.title,
+            updatedAt:conversation.updatedAt,
+        }))
     }
 
     async sendMessage(message,conversationId,userId){
@@ -26,8 +68,25 @@ class ChatRepository{
             }
 
         }
-        if(!conversation)
-            conversation = await this.conversation.create({title:"New Conversation",userId:String(userId)})
+        if(!conversation){
+            conversation = await this.conversation.create({
+                title:typeof message === 'string' && message.trim() ? message.trim() : newConversationTitle,
+                userId:String(userId),
+            })
+        }else if(legacyConversationTitles.has(conversation.title)){
+            const firstMessage = await this.chatHistory
+                .findOne({userId:String(userId),conversationId:conversation._id,role:'user'})
+                .sort({createdAt:1,_id:1})
+                .select('content')
+                .lean()
+            const title = firstMessage?.content?.trim() || (typeof message === 'string' ? message.trim() : '')
+            if (title) {
+                await this.conversation.updateOne(
+                    {_id:conversation._id,userId:String(userId)},
+                    {$set:{title}},
+                )
+            }
+        }
 
     //         const memoryInstructions = `
     //             # Conversation Memory

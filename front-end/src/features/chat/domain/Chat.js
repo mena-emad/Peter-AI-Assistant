@@ -50,6 +50,30 @@ class Chat {
       throw new ChatError('تعذر استعادة المحادثة. تحقق من اتصالك ثم حاول مرة أخرى.', error)
     }
   }
+
+  async getConversations() {
+    try {
+      const conversations = await this.api.getConversations()
+      if (!Array.isArray(conversations)) throw new ChatError('تعذر قراءة قائمة المحادثات.')
+      return conversations
+    } catch (error) {
+      if (error instanceof ChatError) throw error
+      throw new ChatError('تعذر استعادة قائمة المحادثات. تحقق من اتصالك ثم حاول مرة أخرى.', error)
+    }
+  }
+
+  async createConversation() {
+    try {
+      const conversation = await this.api.createConversation()
+      if (!conversation?.id || typeof conversation.title !== 'string') {
+        throw new ChatError('تعذر إنشاء المحادثة.')
+      }
+      return conversation
+    } catch (error) {
+      if (error instanceof ChatError) throw error
+      throw new ChatError('تعذر بدء محادثة جديدة. تحقق من اتصالك ثم حاول مرة أخرى.', error)
+    }
+  }
 }
 
 export default Chat

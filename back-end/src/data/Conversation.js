@@ -14,7 +14,6 @@ const ConversationSchema = new mongoose.Schema({
     title:{
         type: String,
         required: true,
-        default: "New Conversation"
     },
     summary:{
         type: String,

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import AppLayout from './layout/AppLayout.jsx'
 import ConversationSidebar from './layout/ConversationSidebar.jsx'
 import WelcomeScreen from './features/welcome/components/WelcomeScreen.jsx'
@@ -7,7 +7,6 @@ import useChat from './features/chat/hooks/useChat.js'
 import useAuth from './features/auth/hooks/useAuth.js'
 import GoogleLoginScreen from './features/auth/components/GoogleLoginScreen.jsx'
 import AuthLoadingScreen from './features/auth/components/AuthLoadingScreen.jsx'
-import { readConversationIndex, upsertConversationIndex, writeConversationIndex } from './features/chat/state/conversationIndex.js'
 
 function readConversationId() {
   const match = window.location.pathname.match(/^\/chat\/([^/]+)\/?$/)
@@ -21,13 +20,47 @@ function readConversationId() {
 }
 
 function AuthenticatedChatApplication({ auth }) {
-  const userId = String(auth.user._id || auth.user.id)
   const [route, setRoute] = useState(() => {
     const conversationId = readConversationId()
     return { conversationId, view: conversationId ? 'chat' : 'welcome' }
   })
-  const [conversations, setConversations] = useState(() => readConversationIndex(userId))
-  const { messages, isLoading, error, sendMessage, startNewConversation, activeConversationId } = useChat(route.conversationId)
+  const [conversations, setConversations] = useState([])
+  const [conversationsLoaded, setConversationsLoaded] = useState(false)
+  const [isCreatingConversation, setIsCreatingConversation] = useState(false)
+  const [conversationError, setConversationError] = useState(null)
+  const { messages, isLoading, error, sendMessage, startNewConversation, getConversations, createConversation, activeConversationId } = useChat(route.conversationId)
+
+  const refreshConversations = useCallback(async () => {
+    const latest = await getConversations()
+    setConversations(latest)
+    return latest
+  }, [getConversations])
+
+  useEffect(() => {
+    let active = true
+    getConversations()
+      .then((latest) => {
+        if (active) {
+          setConversations(latest)
+          setConversationsLoaded(true)
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setConversations([])
+          setConversationsLoaded(true)
+        }
+      })
+    return () => { active = false }
+  }, [getConversations])
+
+  useEffect(() => {
+    if (!conversationsLoaded || route.conversationId || conversations.length === 0) return
+    const conversationId = conversations[0].id
+    const path = `/chat/${encodeURIComponent(conversationId)}`
+    if (window.location.pathname !== path) window.history.replaceState({}, '', path)
+    setRoute({ conversationId, view: 'chat' })
+  }, [conversations, conversationsLoaded, route.conversationId])
 
   useEffect(() => {
     const handlePopState = () => {
@@ -39,10 +72,6 @@ function AuthenticatedChatApplication({ auth }) {
   }, [])
 
   useEffect(() => {
-    writeConversationIndex(conversations, userId)
-  }, [conversations, userId])
-
-  useEffect(() => {
     if (!activeConversationId || isLoading) return
     if (route.conversationId !== activeConversationId) {
       const path = `/chat/${encodeURIComponent(activeConversationId)}`
@@ -50,17 +79,13 @@ function AuthenticatedChatApplication({ auth }) {
       setRoute({ conversationId: activeConversationId, view: 'chat' })
       return
     }
-    if (error) return
-    const firstUserMessage = messages.find((message) => message.role === 'user')
-    if (!firstUserMessage) return
-    setConversations((current) => upsertConversationIndex(current, route.conversationId, firstUserMessage.content))
-  }, [activeConversationId, error, isLoading, messages, route.conversationId])
+  }, [activeConversationId, isLoading, route.conversationId])
 
   const handleSend = async (content) => {
     setRoute((current) => ({ ...current, view: 'chat' }))
     const response = await sendMessage(content)
     if (response?.conversationId) {
-      setConversations((current) => upsertConversationIndex(current, response.conversationId, content))
+      refreshConversations().catch(() => {})
       const path = `/chat/${encodeURIComponent(response.conversationId)}`
       if (window.location.pathname !== path) window.history.pushState({}, '', path)
       setRoute({ conversationId: response.conversationId, view: 'chat' })
@@ -74,15 +99,27 @@ function AuthenticatedChatApplication({ auth }) {
     setRoute({ conversationId, view: 'chat' })
   }
 
-  const handleNewChat = () => {
-    if (window.location.pathname !== '/') window.history.pushState({}, '', '/')
+  const handleNewChat = async () => {
+    if (isCreatingConversation) return
+    setIsCreatingConversation(true)
+    setConversationError(null)
+    try {
+      const conversation = await createConversation()
     startNewConversation()
-    setRoute({ conversationId: null, view: 'welcome' })
+      setConversations((current) => [conversation, ...current.filter((item) => item.id !== conversation.id)])
+      const path = `/chat/${encodeURIComponent(conversation.id)}`
+      if (window.location.pathname !== path) window.history.pushState({}, '', path)
+      setRoute({ conversationId: conversation.id, view: 'chat' })
+    } catch (createError) {
+      setConversationError(createError?.message || 'تعذر بدء محادثة جديدة.')
+    } finally {
+      setIsCreatingConversation(false)
+    }
   }
 
   return <AppLayout
     onNewChat={handleNewChat}
-    canStartNewChat={!isLoading}
+    canStartNewChat={!isLoading && !isCreatingConversation}
     user={auth.user}
     onLogout={auth.logout}
     sidebar={<ConversationSidebar
@@ -91,6 +128,7 @@ function AuthenticatedChatApplication({ auth }) {
       onSelectConversation={handleSelectConversation}
     />}
   >
+    {conversationError ? <p role="alert">{conversationError}</p> : null}
     {route.view === 'welcome' ? (
       <WelcomeScreen onPromptSelect={handleSend} onSend={handleSend} disabled={isLoading} />
     ) : (

@@ -10,6 +10,8 @@ class ChatRoutes{
     }
 
     initRoutes(){
+        this.router.post('/conversations',this.protect,catchAsync(this.chatController.createConversation.bind(this.chatController)))
+        this.router.get('/conversations',this.protect,catchAsync(this.chatController.getConversations.bind(this.chatController)))
         this.router.post('/chat',this.protect,catchAsync(this.chatController.sendMessage.bind(this.chatController)))
         this.router.get('/chats',this.protect,catchAsync(this.chatController.getCurrentChat.bind(this.chatController)))
         this.router.post('/chats/active',this.protect,catchAsync(this.chatController.selectCurrentChat.bind(this.chatController)))

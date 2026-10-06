@@ -17,8 +17,6 @@ function useChat(conversationId = null) {
   const loadPromiseRef = useRef(null)
   const skipLoadForIdRef = useRef(null)
   const initialLoadRef = useRef(true)
-  const skipCookieLoadRef = useRef(false)
-  const newConversationRef = useRef(false)
 
   if (!chatRef.current) chatRef.current = new Chat(chatApi)
 
@@ -27,7 +25,6 @@ function useChat(conversationId = null) {
     let cancelled = false
 
     if (!conversationId && !initialLoadRef.current) {
-      if (skipCookieLoadRef.current) skipCookieLoadRef.current = false
       dispatch({ type: 'conversation-reset' })
       return () => {
         cancelled = true
@@ -100,9 +97,7 @@ function useChat(conversationId = null) {
     })
 
     try {
-      const newConversation = newConversationRef.current
-      newConversationRef.current = false
-      const response = await chatRef.current.sendMessage(message, { newConversation })
+      const response = await chatRef.current.sendMessage(message)
 
       if (requestId !== requestIdRef.current) return false
       if (conversationId !== response.conversationId) {
@@ -135,14 +130,15 @@ function useChat(conversationId = null) {
     requestIdRef.current += 1
     inFlightRef.current = null
     initialLoadRef.current = false
-    skipCookieLoadRef.current = true
-    newConversationRef.current = true
     dispatch({
       type: 'new-conversation',
       isRequestPending: pendingRequestId !== null,
       pendingRequestId,
     })
   }, [])
+
+  const getConversations = useCallback(() => chatRef.current.getConversations(), [])
+  const createConversation = useCallback(() => chatRef.current.createConversation(), [])
 
   return {
     messages: state.conversationId === conversationId ? state.messages : [],
@@ -151,6 +147,8 @@ function useChat(conversationId = null) {
     activeConversationId: state.conversationId,
     sendMessage,
     startNewConversation,
+    getConversations,
+    createConversation,
   }
 }
 

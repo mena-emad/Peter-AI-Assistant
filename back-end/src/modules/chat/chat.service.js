@@ -2,6 +2,14 @@ class ChatService{
     constructor(chatRepository) {
         this.chatRepository = chatRepository;
     }
+    async createConversation(userId) {
+        return this.chatRepository.createConversation(userId);
+    }
+
+    async getConversations(userId) {
+        return this.chatRepository.getConversations(userId);
+    }
+
     async sendMessage(message,conversationId,userId) {
        
         let {content:result,conversationId:activeConversationId} = await this.chatRepository.sendMessage(message,conversationId,userId);

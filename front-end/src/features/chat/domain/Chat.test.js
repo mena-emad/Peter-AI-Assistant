@@ -3,7 +3,6 @@ import assert from 'node:assert/strict'
 import ChatApi from '../api/Chat.api.js'
 import Chat, { ChatError } from './Chat.js'
 import { chatReducer, initialChatState } from '../state/chatState.js'
-import { readConversationIndex, upsertConversationIndex, writeConversationIndex } from '../state/conversationIndex.js'
 
 test('ChatApi posts a trimmed message to the configured chat endpoint', async () => {
   const calls = []
@@ -43,6 +42,34 @@ test('ChatApi uses the existing chats endpoint and relies on the HTTP-only cooki
 
   assert.deepEqual(await chatApi.getCurrentChat(), messages)
   assert.deepEqual(calls, [['/api/v1/chats']])
+})
+
+test('ChatApi loads conversations from the backend', async () => {
+  const calls = []
+  const conversations = [{ id: 'conversation-1', title: 'سؤال أول' }]
+  const chatApi = new ChatApi('/api/v1', {
+    get: async (...args) => {
+      calls.push(args)
+      return { data: conversations }
+    },
+  })
+
+  assert.deepEqual(await chatApi.getConversations(), conversations)
+  assert.deepEqual(calls, [['/api/v1/conversations']])
+})
+
+test('ChatApi creates a conversation through the backend', async () => {
+  const calls = []
+  const conversation = { id: 'conversation-1', title: 'محادثة جديدة' }
+  const chatApi = new ChatApi('/api/v1', {
+    post: async (...args) => {
+      calls.push(args)
+      return { data: conversation }
+    },
+  })
+
+  assert.deepEqual(await chatApi.createConversation(), conversation)
+  assert.deepEqual(calls, [['/api/v1/conversations', {}]])
 })
 
 test('ChatApi selects a conversation by POST body so the backend can update its HTTP-only cookie', async () => {
@@ -134,21 +161,4 @@ test('local reset stays locked until an earlier request settles', () => {
   assert.equal(resetWhileSending.messages.length, 0)
   assert.equal(resetWhileSending.isLoading, true)
   assert.deepEqual(chatReducer(resetWhileSending, { type: 'request-finished' }), initialChatState)
-})
-
-test('conversation index persists and moves recently active chats to the top', () => {
-  const values = new Map()
-  const storage = {
-    getItem: (key) => values.get(key) ?? null,
-    setItem: (key, value) => values.set(key, value),
-  }
-  const initial = upsertConversationIndex([], 'conversation-1', 'سؤال أول')
-  const withSecond = upsertConversationIndex(initial, 'conversation-2', 'سؤال ثان')
-  const updated = upsertConversationIndex(withSecond, 'conversation-1', 'سؤال أول')
-
-  assert.equal(writeConversationIndex(updated, 'user-1', storage), true)
-  assert.deepEqual(readConversationIndex('user-1', storage), updated)
-  assert.deepEqual(readConversationIndex('user-2', storage), [])
-  assert.equal(updated[0].id, 'conversation-1')
-  assert.equal(updated[0].title, 'سؤال أول')
 })
