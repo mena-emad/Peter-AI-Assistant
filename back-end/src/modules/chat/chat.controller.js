@@ -1,3 +1,5 @@
+import AppError from '../../utils/AppError.js'
+
 class chatController{
     constructor(chatService) {
         this.chatService = chatService;
@@ -16,23 +18,19 @@ class chatController{
         const userId = req.user?.userId;
         const conversationId = req.cookies?.conversationId;
         if (!conversationId) return res.status(200).json([]);
-        if(!userId) return res.status(401).json({message:"Not authorized"});
+        if(!userId) throw new AppError('Not authorized',401)
         const result = await this.chatService.getCurrentChat(conversationId,userId);
         res.status(200).json(result);
     }
 
     async selectCurrentChat(req,res){
         const conversationId = req.body.conversationId
-        if (!conversationId) return res.status(400).json({message:"Conversation is required"})
-        try{
-            const isOwned = await this.chatService.ownsConversation(conversationId,req.user.userId)
-            if (!isOwned) return res.status(404).json({message:"Conversation not found"})
-            const sameSite = process.env.COOKIE_SAME_SITE || 'lax'
-            res.cookie("conversationId",conversationId,{httpOnly:true,secure:process.env.NODE_ENV==="production" || sameSite === 'none',sameSite,path:"/"})
-            return res.status(204).end()
-        }catch{
-            return res.status(404).json({message:"Conversation not found"})
-        }
+        if (!conversationId) throw new AppError('Conversation is required',400)
+        const isOwned = await this.chatService.ownsConversation(conversationId,req.user.userId)
+        if (!isOwned) throw new AppError('Conversation not found',404)
+        const sameSite = process.env.COOKIE_SAME_SITE || 'lax'
+        res.cookie("conversationId",conversationId,{httpOnly:true,secure:process.env.NODE_ENV==="production" || sameSite === 'none',sameSite,path:"/"})
+        return res.status(204).end()
     }
 }
 

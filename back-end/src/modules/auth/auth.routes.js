@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import catchAsync from '../../utils/catchAsync.js'
 
 class AuthRoutes{
     constructor(authController,protect){
@@ -9,10 +10,10 @@ class AuthRoutes{
     }
     initRoutes(){
         this.router.get('/google',this.authController.auth.bind(this.authController));
-        this.router.get('/google/callback',this.authController.callBack.bind(this.authController));
-        this.router.get('/me',this.protect,this.authController.me.bind(this.authController));
-        this.router.post('/refresh',this.authController.refresh.bind(this.authController));
-        this.router.post('/logout',this.authController.logout.bind(this.authController));
+        this.router.get('/google/callback',catchAsync(this.authController.callBack.bind(this.authController)));
+        this.router.get('/me',this.protect,catchAsync(this.authController.me.bind(this.authController)));
+        this.router.post('/refresh',catchAsync(this.authController.refresh.bind(this.authController)));
+        this.router.post('/logout',catchAsync(this.authController.logout.bind(this.authController)));
     }
 
     getRouter(){

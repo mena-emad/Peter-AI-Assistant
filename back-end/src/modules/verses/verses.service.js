@@ -1,3 +1,5 @@
+import AppError from '../../utils/AppError.js'
+
 class VersesService{
     constructor(versesRepository) {
         this.versesRepository = versesRepository;
@@ -5,7 +7,7 @@ class VersesService{
 
     async searchByKeyword(keyword) {
         if(!keyword || keyword.trim() === ''){
-            throw new Error('لا يمكن ان تكون كلمة البحث فارغة');
+            throw new AppError('لا يمكن ان تكون كلمة البحث فارغة',400);
         };
         return this.versesRepository.searchByKeyword(keyword);
     }

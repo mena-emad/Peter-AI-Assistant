@@ -1,5 +1,6 @@
 import { randomBytes, timingSafeEqual } from 'node:crypto'
 import googleClient from "../../config/google.js";
+import AppError from '../../utils/AppError.js'
 
 function authCookieOptions(maxAge){
     const sameSite = process.env.COOKIE_SAME_SITE || 'lax'
@@ -56,7 +57,7 @@ class AuthController{
 
     async me(req,res){
         const user = await this.authService.getCurrentUser(req.user.userId)
-        if(!user) return res.status(401).json({message:'Not authorized'})
+        if(!user) throw new AppError('Not authorized',401)
         return res.status(200).json(user)
     }
 

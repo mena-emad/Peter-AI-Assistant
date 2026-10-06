@@ -1,6 +1,7 @@
 import 'dotenv/config'
 import cookieParser from "cookie-parser"
 import {authRoutes,chatRoutes} from "../container.js"
+import gerror from "./middlewares/globalErrorHandler.js"
 import express from "express";
 
 
@@ -27,12 +28,7 @@ app.use(express.json());
 
 app.use("/api/v1/auth",authRoutes.getRouter());
 app.use("/api/v1",chatRoutes.getRouter());
-app.use((error,req,res,next)=>{
-	if (res.headersSent) return next(error)
-	console.error('Request failed:',error)
-	const status = Number.isInteger(error.status) && error.status >= 400 ? error.status : 500
-	return res.status(status).json({message:status === 401 ? 'Not authorized' : 'Request failed'})
-})
+app.use(gerror)
 
 
 export default app
