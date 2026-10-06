@@ -16,7 +16,6 @@ function useChat(conversationId = null) {
   const inFlightRef = useRef(null)
   const loadPromiseRef = useRef(null)
   const skipLoadForIdRef = useRef(null)
-  const initialLoadRef = useRef(true)
 
   if (!chatRef.current) chatRef.current = new Chat(chatApi)
 
@@ -24,7 +23,7 @@ function useChat(conversationId = null) {
     const requestId = ++requestIdRef.current
     let cancelled = false
 
-    if (!conversationId && !initialLoadRef.current) {
+    if (!conversationId) {
       dispatch({ type: 'conversation-reset' })
       return () => {
         cancelled = true
@@ -42,9 +41,9 @@ function useChat(conversationId = null) {
     inFlightRef.current = null
     dispatch({ type: 'load-start', conversationId })
     let load = loadPromiseRef.current
-    if (!load || load.conversationId !== (conversationId || 'cookie')) {
+    if (!load || load.conversationId !== conversationId) {
       load = {
-        conversationId: conversationId || 'cookie',
+        conversationId,
         promise: chatRef.current.getCurrentChat(conversationId),
       }
       loadPromiseRef.current = load
@@ -58,8 +57,6 @@ function useChat(conversationId = null) {
       .then((messages) => {
         clearLoad()
         if (!cancelled && requestId === requestIdRef.current) {
-          initialLoadRef.current = false
-          if (!conversationId && messages.conversationId) skipLoadForIdRef.current = messages.conversationId
           dispatch({
             type: 'load-success',
             conversationId: messages.conversationId || conversationId,
@@ -70,7 +67,6 @@ function useChat(conversationId = null) {
       .catch((error) => {
         clearLoad()
         if (!cancelled && requestId === requestIdRef.current) {
-          initialLoadRef.current = false
           dispatch({
             type: 'load-error',
             conversationId,
@@ -129,7 +125,6 @@ function useChat(conversationId = null) {
     const pendingRequestId = inFlightRef.current
     requestIdRef.current += 1
     inFlightRef.current = null
-    initialLoadRef.current = false
     dispatch({
       type: 'new-conversation',
       isRequestPending: pendingRequestId !== null,

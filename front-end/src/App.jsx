@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import AppLayout from './layout/AppLayout.jsx'
 import ConversationSidebar from './layout/ConversationSidebar.jsx'
 import WelcomeScreen from './features/welcome/components/WelcomeScreen.jsx'
@@ -25,10 +25,8 @@ function AuthenticatedChatApplication({ auth }) {
     return { conversationId, view: conversationId ? 'chat' : 'welcome' }
   })
   const [conversations, setConversations] = useState([])
-  const [conversationsLoaded, setConversationsLoaded] = useState(false)
   const [isNewConversation, setIsNewConversation] = useState(false)
-  const skipLatestConversationRestoreRef = useRef(false)
-  const { messages, isLoading, error, sendMessage, startNewConversation, getConversations, activeConversationId } = useChat(route.conversationId)
+  const { messages, isLoading, error, sendMessage, startNewConversation, getConversations } = useChat(route.conversationId)
 
   const refreshConversations = useCallback(async () => {
     const latest = await getConversations()
@@ -42,46 +40,25 @@ function AuthenticatedChatApplication({ auth }) {
       .then((latest) => {
         if (active) {
           setConversations(latest)
-          setConversationsLoaded(true)
         }
       })
       .catch(() => {
         if (active) {
           setConversations([])
-          setConversationsLoaded(true)
         }
       })
     return () => { active = false }
   }, [getConversations])
 
   useEffect(() => {
-    if (!conversationsLoaded || route.conversationId || conversations.length === 0 || skipLatestConversationRestoreRef.current) return
-    const conversationId = conversations[0].id
-    const path = `/chat/${encodeURIComponent(conversationId)}`
-    if (window.location.pathname !== path) window.history.replaceState({}, '', path)
-    setRoute({ conversationId, view: 'chat' })
-  }, [conversations, conversationsLoaded, route.conversationId])
-
-  useEffect(() => {
     const handlePopState = () => {
       const conversationId = readConversationId()
-      skipLatestConversationRestoreRef.current = false
       setIsNewConversation(false)
       setRoute({ conversationId, view: conversationId ? 'chat' : 'welcome' })
     }
     window.addEventListener('popstate', handlePopState)
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
-
-  useEffect(() => {
-    if (!activeConversationId || isLoading) return
-    if (route.conversationId !== activeConversationId) {
-      const path = `/chat/${encodeURIComponent(activeConversationId)}`
-      if (window.location.pathname !== path) window.history.replaceState({}, '', path)
-      setRoute({ conversationId: activeConversationId, view: 'chat' })
-      return
-    }
-  }, [activeConversationId, isLoading, route.conversationId])
 
   const handleSend = async (content) => {
     setIsNewConversation(false)
@@ -98,7 +75,6 @@ function AuthenticatedChatApplication({ auth }) {
   }
 
   const handleSelectConversation = (conversationId) => {
-    skipLatestConversationRestoreRef.current = false
     setIsNewConversation(false)
     const path = `/chat/${encodeURIComponent(conversationId)}`
     if (window.location.pathname !== path) window.history.pushState({}, '', path)
@@ -106,7 +82,6 @@ function AuthenticatedChatApplication({ auth }) {
   }
 
   const handleNewChat = () => {
-    skipLatestConversationRestoreRef.current = true
     setIsNewConversation(true)
     startNewConversation()
     if (window.location.pathname !== '/') window.history.pushState({}, '', '/')
