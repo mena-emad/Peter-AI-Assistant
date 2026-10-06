@@ -5,13 +5,6 @@ class chatController{
         this.chatService = chatService;
     }
 
-    async createConversation(req,res){
-        const conversation = await this.chatService.createConversation(req.user.userId)
-        const sameSite = process.env.COOKIE_SAME_SITE || 'lax'
-        res.cookie("conversationId",conversation.id,{httpOnly:true,secure:process.env.NODE_ENV==="production" || sameSite === 'none',sameSite,path:"/"})
-        return res.status(201).json(conversation)
-    }
-
     async getConversations(req,res){
         const conversations = await this.chatService.getConversations(req.user.userId)
         return res.status(200).json(conversations)

@@ -20,6 +20,19 @@ test('ChatApi posts a trimmed message to the configured chat endpoint', async ()
   assert.deepEqual(calls, [['http://localhost:3000/api/v1/chat', { message: 'سؤالي' }]])
 })
 
+test('ChatApi marks the first message in a new UI conversation', async () => {
+  const calls = []
+  const chatApi = new ChatApi('/api/v1', {
+    post: async (...args) => {
+      calls.push(args)
+      return { data: { result: 'إجابة', conversationId: 'conversation-1' } }
+    },
+  })
+
+  await chatApi.sendMessage('  بداية المحادثة  ', { newConversation: true })
+  assert.deepEqual(calls, [['/api/v1/chat', { message: 'بداية المحادثة', newConversation: true }]])
+})
+
 test('ChatApi rejects empty messages without making a request', async () => {
   let called = false
   const chatApi = new ChatApi('/api/v1', {
@@ -56,20 +69,6 @@ test('ChatApi loads conversations from the backend', async () => {
 
   assert.deepEqual(await chatApi.getConversations(), conversations)
   assert.deepEqual(calls, [['/api/v1/conversations']])
-})
-
-test('ChatApi creates a conversation through the backend', async () => {
-  const calls = []
-  const conversation = { id: 'conversation-1', title: 'محادثة جديدة' }
-  const chatApi = new ChatApi('/api/v1', {
-    post: async (...args) => {
-      calls.push(args)
-      return { data: conversation }
-    },
-  })
-
-  assert.deepEqual(await chatApi.createConversation(), conversation)
-  assert.deepEqual(calls, [['/api/v1/conversations', {}]])
 })
 
 test('ChatApi selects a conversation by POST body so the backend can update its HTTP-only cookie', async () => {

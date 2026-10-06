@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import AppLayout from './layout/AppLayout.jsx'
 import ConversationSidebar from './layout/ConversationSidebar.jsx'
 import WelcomeScreen from './features/welcome/components/WelcomeScreen.jsx'
@@ -26,9 +26,9 @@ function AuthenticatedChatApplication({ auth }) {
   })
   const [conversations, setConversations] = useState([])
   const [conversationsLoaded, setConversationsLoaded] = useState(false)
-  const [isCreatingConversation, setIsCreatingConversation] = useState(false)
-  const [conversationError, setConversationError] = useState(null)
-  const { messages, isLoading, error, sendMessage, startNewConversation, getConversations, createConversation, activeConversationId } = useChat(route.conversationId)
+  const [isNewConversation, setIsNewConversation] = useState(false)
+  const skipLatestConversationRestoreRef = useRef(false)
+  const { messages, isLoading, error, sendMessage, startNewConversation, getConversations, activeConversationId } = useChat(route.conversationId)
 
   const refreshConversations = useCallback(async () => {
     const latest = await getConversations()
@@ -55,7 +55,7 @@ function AuthenticatedChatApplication({ auth }) {
   }, [getConversations])
 
   useEffect(() => {
-    if (!conversationsLoaded || route.conversationId || conversations.length === 0) return
+    if (!conversationsLoaded || route.conversationId || conversations.length === 0 || skipLatestConversationRestoreRef.current) return
     const conversationId = conversations[0].id
     const path = `/chat/${encodeURIComponent(conversationId)}`
     if (window.location.pathname !== path) window.history.replaceState({}, '', path)
@@ -65,6 +65,8 @@ function AuthenticatedChatApplication({ auth }) {
   useEffect(() => {
     const handlePopState = () => {
       const conversationId = readConversationId()
+      skipLatestConversationRestoreRef.current = false
+      setIsNewConversation(false)
       setRoute({ conversationId, view: conversationId ? 'chat' : 'welcome' })
     }
     window.addEventListener('popstate', handlePopState)
@@ -82,9 +84,11 @@ function AuthenticatedChatApplication({ auth }) {
   }, [activeConversationId, isLoading, route.conversationId])
 
   const handleSend = async (content) => {
+    setIsNewConversation(false)
     setRoute((current) => ({ ...current, view: 'chat' }))
     const response = await sendMessage(content)
     if (response?.conversationId) {
+      setIsNewConversation(false)
       refreshConversations().catch(() => {})
       const path = `/chat/${encodeURIComponent(response.conversationId)}`
       if (window.location.pathname !== path) window.history.pushState({}, '', path)
@@ -94,32 +98,24 @@ function AuthenticatedChatApplication({ auth }) {
   }
 
   const handleSelectConversation = (conversationId) => {
+    skipLatestConversationRestoreRef.current = false
+    setIsNewConversation(false)
     const path = `/chat/${encodeURIComponent(conversationId)}`
     if (window.location.pathname !== path) window.history.pushState({}, '', path)
     setRoute({ conversationId, view: 'chat' })
   }
 
-  const handleNewChat = async () => {
-    if (isCreatingConversation) return
-    setIsCreatingConversation(true)
-    setConversationError(null)
-    try {
-      const conversation = await createConversation()
+  const handleNewChat = () => {
+    skipLatestConversationRestoreRef.current = true
+    setIsNewConversation(true)
     startNewConversation()
-      setConversations((current) => [conversation, ...current.filter((item) => item.id !== conversation.id)])
-      const path = `/chat/${encodeURIComponent(conversation.id)}`
-      if (window.location.pathname !== path) window.history.pushState({}, '', path)
-      setRoute({ conversationId: conversation.id, view: 'chat' })
-    } catch (createError) {
-      setConversationError(createError?.message || 'تعذر بدء محادثة جديدة.')
-    } finally {
-      setIsCreatingConversation(false)
-    }
+    if (window.location.pathname !== '/') window.history.pushState({}, '', '/')
+    setRoute({ conversationId: null, view: 'welcome' })
   }
 
   return <AppLayout
     onNewChat={handleNewChat}
-    canStartNewChat={!isLoading && !isCreatingConversation}
+    canStartNewChat={!isLoading}
     user={auth.user}
     onLogout={auth.logout}
     sidebar={<ConversationSidebar
@@ -128,8 +124,7 @@ function AuthenticatedChatApplication({ auth }) {
       onSelectConversation={handleSelectConversation}
     />}
   >
-    {conversationError ? <p role="alert">{conversationError}</p> : null}
-    {route.view === 'welcome' ? (
+    {route.view === 'welcome' || isNewConversation ? (
       <WelcomeScreen onPromptSelect={handleSend} onSend={handleSend} disabled={isLoading} />
     ) : (
       <ChatWindow messages={messages} isLoading={isLoading} error={error} onSend={handleSend} />

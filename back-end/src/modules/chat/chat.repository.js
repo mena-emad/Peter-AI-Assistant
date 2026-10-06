@@ -1,11 +1,11 @@
 import { GoogleGenAI } from "@google/genai"
 import systemInstructions from "../../config/systemInstructions.js"
 import summaryPrompt from "../../config/summaryPrompt.js"
+import AppError from '../../utils/AppError.js'
 const ai = new GoogleGenAI({
     apiKey: process.env.GOOGLE_API_KEY,
 })
-const newConversationTitle = 'محادثة جديدة'
-const legacyConversationTitles = new Set(['New Conversation', newConversationTitle])
+const legacyConversationTitles = new Set(['New Conversation', 'محادثة جديدة'])
 
 class ChatRepository{
     constructor(model,tools,geminiTools,conversationModel,chatHistoryModel){
@@ -14,15 +14,6 @@ class ChatRepository{
         this.geminiTools = geminiTools
         this.conversation = conversationModel
         this.chatHistory = chatHistoryModel
-    }
-
-    async createConversation(userId){
-        if (!userId) throw new Error("Authenticated user is required")
-        const conversation = await this.conversation.create({
-            userId:String(userId),
-            title:newConversationTitle,
-        })
-        return {id:String(conversation._id),title:conversation.title,updatedAt:conversation.updatedAt}
     }
 
     async getConversations(userId){
@@ -62,15 +53,15 @@ class ChatRepository{
         let conversation = null;
         if(conversationId){
             conversation = await this.conversation.findOne({_id:conversationId,userId:String(userId)}).lean()
-            if(conversation){
-                chatHistory = await this.chatHistory.find({conversationId:conversationId}).sort({createdAt:-1}).limit(20).lean()??[]
-                chatHistory.reverse();
-            }
-
+            if(!conversation) throw new AppError('Conversation not found',404)
+            chatHistory = await this.chatHistory.find({conversationId:conversationId}).sort({createdAt:-1}).limit(20).lean()??[]
+            chatHistory.reverse();
         }
         if(!conversation){
+            const title = typeof message === 'string' ? message.trim() : ''
+            if (!title) throw new AppError('Message is required',400)
             conversation = await this.conversation.create({
-                title:typeof message === 'string' && message.trim() ? message.trim() : newConversationTitle,
+                title,
                 userId:String(userId),
             })
         }else if(legacyConversationTitles.has(conversation.title)){

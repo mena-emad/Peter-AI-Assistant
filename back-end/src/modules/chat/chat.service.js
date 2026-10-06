@@ -2,10 +2,6 @@ class ChatService{
     constructor(chatRepository) {
         this.chatRepository = chatRepository;
     }
-    async createConversation(userId) {
-        return this.chatRepository.createConversation(userId);
-    }
-
     async getConversations(userId) {
         return this.chatRepository.getConversations(userId);
     }

@@ -62,18 +62,6 @@ class Chat {
     }
   }
 
-  async createConversation() {
-    try {
-      const conversation = await this.api.createConversation()
-      if (!conversation?.id || typeof conversation.title !== 'string') {
-        throw new ChatError('تعذر إنشاء المحادثة.')
-      }
-      return conversation
-    } catch (error) {
-      if (error instanceof ChatError) throw error
-      throw new ChatError('تعذر بدء محادثة جديدة. تحقق من اتصالك ثم حاول مرة أخرى.', error)
-    }
-  }
 }
 
 export default Chat

@@ -26,14 +26,6 @@ class ChatApi{
         return data
     }
 
-    async createConversation(){
-        const {data} = await this.api.post(`${this.baseURL}/conversations`,{})
-        if(typeof data?.id !== 'string' || !data.id || typeof data.title !== 'string') {
-            throw new TypeError('استجابة إنشاء المحادثة غير متوقعة.')
-        }
-        return data
-    }
-
     async selectCurrentChat(conversationId){
         if (typeof conversationId !== 'string' || !conversationId.trim()) {
             throw new TypeError('معرّف المحادثة غير صالح.')

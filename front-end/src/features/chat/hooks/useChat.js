@@ -97,7 +97,7 @@ function useChat(conversationId = null) {
     })
 
     try {
-      const response = await chatRef.current.sendMessage(message)
+      const response = await chatRef.current.sendMessage(message, { newConversation: !conversationId })
 
       if (requestId !== requestIdRef.current) return false
       if (conversationId !== response.conversationId) {
@@ -138,7 +138,6 @@ function useChat(conversationId = null) {
   }, [])
 
   const getConversations = useCallback(() => chatRef.current.getConversations(), [])
-  const createConversation = useCallback(() => chatRef.current.createConversation(), [])
 
   return {
     messages: state.conversationId === conversationId ? state.messages : [],
@@ -148,7 +147,6 @@ function useChat(conversationId = null) {
     sendMessage,
     startNewConversation,
     getConversations,
-    createConversation,
   }
 }
 
