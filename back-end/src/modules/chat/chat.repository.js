@@ -28,7 +28,6 @@ class ChatRepository{
         }
         if(!conversation)
             conversation = await this.conversation.create({title:"New Conversation",userId:String(userId)})
-        console.log(`Last question : ${chatHistory?.[1]?.content ?? "No previous conversation"}`);
 
     //         const memoryInstructions = `
     //             # Conversation Memory
@@ -86,7 +85,6 @@ class ChatRepository{
                 }
             })
         }
-        console.log(`last message is ${formattedChatHistory?.[1]?.parts?.[0]?.text}`)
         
  
 
@@ -103,12 +101,9 @@ class ChatRepository{
         let response =  await chat.sendMessage({ message })
         while(response.functionCalls && response.functionCalls.length > 0){
             const parts =[];
-            console.dir(response.candidates?.[0].content.parts,{
-                depth:null,
-                colors:true
-            })
+
             for(const functionCall of response.functionCalls){
-                console.log(functionCall.name)
+              
                 const tool = this.tools.find(t=>t.name === functionCall.name);
                 if(!tool){
                     parts.push({
@@ -149,7 +144,7 @@ class ChatRepository{
             response = await chat.sendMessage({
                 message:parts
             })
-            console.log(response)
+            
 
         }
         const finalContent = response.text || ""

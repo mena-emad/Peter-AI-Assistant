@@ -9,7 +9,7 @@ import express from "express";
 const app = express();
 app.use(cookieParser());
 
-const configuredFrontendUrl = process.env.FRONTEND_URL
+const configuredFrontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173'
 const allowedFrontendOrigin = configuredFrontendUrl ? new URL(configuredFrontendUrl).origin : null
 app.use((req,res,next)=>{
 	const origin = req.headers.origin
